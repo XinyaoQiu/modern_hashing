@@ -1,37 +1,30 @@
 CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -O2
 
-ICEBERG_SRCS = iceberg_unittest.cpp
-CUCKOO_SRCS = cuckoo_unittest.cpp
+TEST_SRCS = iceberg_unittest.cpp \
+            cuckoo_unittest.cpp \
+            cuckoo_stress_test.cpp
 
-ICEBERG_OBJS = $(ICEBERG_SRCS:.cpp=.o)
-CUCKOO_OBJS = $(CUCKOO_SRCS:.cpp=.o)
+TEST_OBJS = $(TEST_SRCS:.cpp=.o)
+TEST_TARGETS = $(TEST_SRCS:.cpp=)
 
-ICEBERG_TARGET = test_iceberg
-CUCKOO_TARGET = test_cuckoo
+all: $(TEST_TARGETS)
 
-all: $(ICEBERG_TARGET) $(CUCKOO_TARGET)
-
-$(ICEBERG_TARGET): $(ICEBERG_OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $^
-
-$(CUCKOO_TARGET): $(CUCKOO_OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $^
+$(TEST_TARGETS): %: %.o
+	$(CXX) $(CXXFLAGS) -o $@ $<
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $<
 
-# Run targets
-run-iceberg: $(ICEBERG_TARGET)
-	./$(ICEBERG_TARGET)
-
-run-cuckoo: $(CUCKOO_TARGET)
-	./$(CUCKOO_TARGET)
-
+.PHONY: run
 run:
-	@echo "To run the tests, use:"
-	@echo "  make run-iceberg   # to run IcebergHash tests"
-	@echo "  make run-cuckoo     # to run CuckooHash tests"
+	@echo "Available tests:"; \
+	for t in $(TEST_TARGETS); do echo "  make run-$$t"; done
+
+$(foreach t,$(TEST_TARGETS),\
+  $(eval .PHONY: run-$(t))\
+  $(eval run-$(t): $(t) ; ./$(t))\
+)
 
 clean:
-	rm -f $(ICEBERG_TARGET) $(CUCKOO_TARGET) $(ICEBERG_OBJS) $(CUCKOO_OBJS)
+	rm -f $(TEST_TARGETS) $(TEST_OBJS)
