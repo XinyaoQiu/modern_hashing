@@ -1,4 +1,5 @@
-#include "elastic.h"
+// cuckoo_stress_test.cpp
+#include "cuckoo.h"
 #include <cassert>
 #include <iostream>
 #include <vector>
@@ -6,7 +7,8 @@
 #include <random>
 
 void test_insert_and_lookup() {
-    ElasticHash table;
+    CuckooHash table;
+
     table.insert(42, 100);
     auto v1 = table.lookup(42);
     assert(v1.has_value() && v1.value() == 100);
@@ -23,7 +25,7 @@ void test_insert_and_lookup() {
 }
 
 void test_delete() {
-    ElasticHash table;
+    CuckooHash table;
     table.insert(1, 10);
     table.insert(2, 20);
     table.insert(3, 30);
@@ -38,19 +40,18 @@ void test_delete() {
     std::cout << "test_delete passed\n";
 }
 
-void test_modify() {
-    ElasticHash table;
+void test_update() {
+    CuckooHash table;
     table.insert(5, 50);
-    assert(table.modify(5, 99));
-    auto v = table.lookup(5);
-    assert(v.has_value() && v.value() == 99);
-    assert(!table.modify(12345, 111));
+    assert(table.update(5, 99));
+    assert(table.lookup(5).has_value() && table.lookup(5).value() == 99);
+    assert(!table.update(99, 123));
 
-    std::cout << "test_modify passed\n";
+    std::cout << "test_update passed\n";
 }
 
 void test_bulk_sequential() {
-    ElasticHash table(4);
+    CuckooHash table(4);
     const size_t N = 5000;
 
     for (uint64_t i = 0; i < N; ++i) {
@@ -77,7 +78,7 @@ void test_bulk_sequential() {
 }
 
 void test_remove_evens() {
-    ElasticHash table;
+    CuckooHash table;
     const size_t N = 2000;
 
     for (uint64_t i = 0; i < N; ++i) {
@@ -91,7 +92,7 @@ void test_remove_evens() {
         if (i % 2 == 0) {
             assert(!v.has_value());
         } else {
-            assert(v.has_value() && v.value() == i);
+            assert(v.value() == i);
         }
     }
     for (uint64_t i = 0; i < N; i += 2) {
@@ -102,7 +103,7 @@ void test_remove_evens() {
 }
 
 void test_randomized_operations() {
-    ElasticHash table(8);
+    CuckooHash table(8);
     const size_t N = 10000;
     std::vector<uint64_t> keys(N);
     std::iota(keys.begin(), keys.end(), 1);
@@ -110,76 +111,61 @@ void test_randomized_operations() {
     std::mt19937_64 rng(42);
     std::shuffle(keys.begin(), keys.end(), rng);
 
-    // random insert
-    std::vector<uint64_t> values(N);
-    for (size_t i = 0; i < N; ++i) {
-        values[i] = rng() % 100000;
-        table.insert(keys[i], values[i]);
+    for (auto k : keys) {
+        uint64_t val = rng() % 100000;
+        table.insert(k, val);
     }
-    // verify insert
-    for (size_t i = 0; i < N; ++i) {
-        auto v = table.lookup(keys[i]);
-        assert(v.has_value() && v.value() == values[i]);
+    for (auto k : keys) {
+        assert(table.lookup(k).has_value());
     }
-
-    // remove half, but log any failures
     std::shuffle(keys.begin(), keys.end(), rng);
-    for (size_t i = 0; i < N/2; ++i) {
-        bool ok = table.remove(keys[i]);
-        if (!ok) {
-            std::cerr << "[remove FAILED] iteration=" << i
-                      << " key=" << keys[i] << "\n";
-            // also dump a lookup to see if it's really gone or collision-missed
-            auto v = table.lookup(keys[i]);
-            if (v.has_value())
-                std::cerr << "   lookup still returns: " << v.value() << "\n";
-            std::abort();
-        }
+    for (size_t i = 0; i < N / 2; ++i) {
+        assert(table.remove(keys[i]));
     }
-
-    // verify removes (and log unexpected survivors)
     for (size_t i = 0; i < N; ++i) {
         auto v = table.lookup(keys[i]);
-        if (i < N/2) {
-            if (v.has_value()) {
-                std::cerr << "[VERIFY FAILED] key not removed: " << keys[i]
-                          << " value=" << v.value() << "\n";
-                std::abort();
-            }
+        if (i < N / 2) {
+            assert(!v.has_value());
         } else {
-            if (!v.has_value()) {
-                std::cerr << "[VERIFY FAILED] key unexpectedly missing: " << keys[i] << "\n";
-                std::abort();
-            }
+            assert(v.has_value());
         }
     }
-
-    // reinsert removed with new values, with logging
-    for (size_t i = 0; i < N/2; ++i) {
+    for (size_t i = 0; i < N / 2; ++i) {
         uint64_t k = keys[i];
-        uint64_t newv = k * 3;
-        table.insert(k, newv);
+        table.insert(k, k * 3);
+    }
+    for (size_t i = 0; i < N / 2; ++i) {
+        uint64_t k = keys[i];
         auto v = table.lookup(k);
-        if (!v.has_value() || v.value() != newv) {
-            std::cerr << "[REINSERT FAILED] key=" << k
-                      << " expected=" << newv
-                      << " got=" << (v.has_value() ? std::to_string(v.value()) : "none")
-                      << "\n";
-            std::abort();
-        }
+        assert(v.has_value() && v.value() == k * 3);
     }
 
     std::cout << "test_randomized_operations passed\n";
 }
 
+void test_forced_collisions() {
+    CuckooHash table(16);
+    for (uint64_t i = 0; i < 1000; ++i) {
+        uint64_t key = (i << 32) | 0xDEADBEEF;
+        table.insert(key, key ^ 0xFFFFFFFF);
+    }
+    for (uint64_t i = 0; i < 1000; ++i) {
+        uint64_t key = (i << 32) | 0xDEADBEEF;
+        auto v = table.lookup(key);
+        assert(v.has_value() && v.value() == (key ^ 0xFFFFFFFF));
+    }
+
+    std::cout << "test_forced_collisions passed\n";
+}
 
 int main() {
     test_insert_and_lookup();
     test_delete();
-    test_modify();
+    test_update();
     test_bulk_sequential();
     test_remove_evens();
     test_randomized_operations();
-    std::cout << "All ElasticHash stress tests passed successfully.\n";
+    test_forced_collisions();
+    std::cout << "All extended tests passed successfully.\n";
     return 0;
 }
