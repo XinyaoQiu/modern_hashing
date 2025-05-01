@@ -1,14 +1,17 @@
 #include "dynamic_resizing.h"
 #include <functional>
 
+// Constructor: initializes the table with the given capacity
 DynamicResizing::DynamicResizing(size_t initialCapacity) {
     table.resize(initialCapacity);
 }
 
+// Hash function: computes index for a given key
 size_t DynamicResizing::hash(KeyType key) const {
     return std::hash<KeyType>{}(key) % table.size();
 }
 
+// Doubles the table size and re-inserts all occupied entries
 void DynamicResizing::resize() {
     std::vector<Slot> oldTable = table;
     table.clear();
@@ -22,6 +25,7 @@ void DynamicResizing::resize() {
     }
 }
 
+// Inserts a key-value pair or updates if key already exists
 void DynamicResizing::insert(const KeyType& key, const ValueType& value) {
     if ((float)(count + 1) / table.size() > loadFactorThreshold) {
         resize();
@@ -45,6 +49,7 @@ void DynamicResizing::insert(const KeyType& key, const ValueType& value) {
     ++count;
 }
 
+// Looks up a value by key
 std::optional<ValueType> DynamicResizing::lookup(const KeyType& key) const {
     size_t idx = hash(key);
     size_t start = idx;
@@ -60,6 +65,7 @@ std::optional<ValueType> DynamicResizing::lookup(const KeyType& key) const {
     return std::nullopt;
 }
 
+// Updates the value of an existing key
 bool DynamicResizing::update(const KeyType& key, const ValueType& value) {
     size_t idx = hash(key);
     size_t start = idx;
@@ -76,6 +82,7 @@ bool DynamicResizing::update(const KeyType& key, const ValueType& value) {
     return false;
 }
 
+// Removes a key-value pair if found
 bool DynamicResizing::remove(const KeyType& key) {
     size_t idx = hash(key);
     size_t start = idx;
@@ -93,19 +100,23 @@ bool DynamicResizing::remove(const KeyType& key) {
     return false;
 }
 
+// Returns the number of elements stored
 size_t DynamicResizing::size() const {
     return count;
 }
 
+// Clears the hash table
 void DynamicResizing::clear() {
     table.assign(table.size(), Slot{});
     count = 0;
 }
 
+// Returns the current load factor
 double DynamicResizing::loadFactor() const {
     return static_cast<double>(count) / static_cast<double>(table.size());
 }
 
+// Returns the current capacity (number of slots)
 size_t DynamicResizing::capacity() const {
     return table.size();
 }
