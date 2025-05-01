@@ -1,9 +1,9 @@
-#include "cuckoo.h" 
+#include "elastic.h"
 #include <cassert>
 #include <iostream>
 
 void test_insert_and_lookup() {
-    CuckooHash table;
+    ElasticHash table;
 
     // Insert and lookup
     table.insert(42, 100);
@@ -20,6 +20,7 @@ void test_insert_and_lookup() {
         assert(val.value() == 200);
     }
 
+    // Update existing key
     table.insert(42, 300);
     {
         auto val = table.lookup(42);
@@ -31,7 +32,7 @@ void test_insert_and_lookup() {
 }
 
 void test_delete() {
-    CuckooHash table;
+    ElasticHash table;
     table.insert(1, 10);
     table.insert(2, 20);
     table.insert(3, 30);
@@ -39,6 +40,7 @@ void test_delete() {
     assert(table.remove(2));
     assert(!table.lookup(2).has_value());
 
+    // Removing again should fail
     assert(!table.remove(2));
 
     {
@@ -51,23 +53,25 @@ void test_delete() {
     std::cout << "test_delete passed\n";
 }
 
-void test_modify() {
-    CuckooHash table;
+void test_update() {
+    ElasticHash table;
     table.insert(5, 50);
-    assert(table.modify(5, 99));
+    assert(table.update(5, 99));
     {
         auto val = table.lookup(5);
         assert(val.has_value());
         assert(val.value() == 99);
     }
 
-    assert(!table.modify(99, 123));
+    // update non-existing key should return false
+    assert(!table.update(999, 123));
 
-    std::cout << "test_modify passed\n";
+    std::cout << "test_update passed\n";
 }
 
 void test_resize() {
-    CuckooHash table(2);
+    // Start with small capacity to force rehash
+    ElasticHash table(2);
     for (uint64_t i = 1; i <= 1000; ++i) {
         table.insert(i, i * 10);
     }
@@ -81,15 +85,15 @@ void test_resize() {
 }
 
 void test_collisions() {
-    CuckooHash table;
+    ElasticHash table;
     const KeyType base = 0xdeadbeef;
     for (int i = 0; i < 200; ++i) {
-        KeyType key = base + i * 1000;
+        KeyType key = base + static_cast<KeyType>(i) * 1000;
         table.insert(key, key * 2);
     }
 
     for (int i = 0; i < 200; ++i) {
-        KeyType key = base + i * 1000;
+        KeyType key = base + static_cast<KeyType>(i) * 1000;
         auto val = table.lookup(key);
         assert(val.has_value());
         assert(val.value() == key * 2);
@@ -101,10 +105,10 @@ void test_collisions() {
 int main() {
     test_insert_and_lookup();
     test_delete();
-    test_modify();
+    test_update();
     test_resize();
     test_collisions();
 
-    std::cout << "All CuckooHash tests passed successfully.\n";
+    std::cout << "All ElasticHash tests passed successfully.\n";
     return 0;
 }

@@ -1,17 +1,15 @@
 #pragma once
 
 #include "hash_base.h"
-#include <vector>
 #include <optional>
-#include <functional>
-#include <cstdint>
+#include <vector>
 
-using KeyType = uint64_t;
-using ValueType = uint64_t;
+using KeyType = int;
+using ValueType = int;
 
-class CuckooHash : public HashBase<KeyType, ValueType> {
+class DynamicResizing : public HashBase<KeyType, ValueType> {
 public:
-    explicit CuckooHash(size_t initial_capacity = 16);
+    explicit DynamicResizing(size_t initialCapacity = 8);
 
     void insert(const KeyType& key, const ValueType& value) override;
     std::optional<ValueType> lookup(const KeyType& key) const override;
@@ -23,18 +21,18 @@ public:
     size_t capacity() const override;
 
 private:
-    struct Entry {
+    enum class SlotState { EMPTY, OCCUPIED, DELETED };
+
+    struct Slot {
         KeyType key;
         ValueType value;
-        bool occupied = false;
+        SlotState state = SlotState::EMPTY;
     };
 
-    size_t capacity_;
-    size_t size_;
-    std::vector<Entry> table1, table2;
-    std::hash<KeyType> hasher;
+    std::vector<Slot> table;
+    size_t count = 0;
+    float loadFactorThreshold = 0.6f;
 
-    size_t hash1(const KeyType& key) const;
-    size_t hash2(const KeyType& key) const;
-    void rehash();
+    size_t hash(KeyType key) const;
+    void resize();
 };

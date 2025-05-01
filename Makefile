@@ -37,33 +37,46 @@ CXXFLAGS := -std=c++17 -O2 -Wall -Iinclude
 # Directories
 SRC_DIR := src
 TEST_DIR := test
+EVAL_DIR := evaluation
 BIN_DIR := bin
 
-# Find all test .cpp files and generate target names
+# Automatically find all test and evaluation files
 TEST_SOURCES := $(wildcard $(TEST_DIR)/*.cpp)
+EVAL_SOURCES := $(wildcard $(EVAL_DIR)/*.cpp)
+
 TEST_NAMES := $(notdir $(basename $(TEST_SOURCES)))
+EVAL_NAMES := $(notdir $(basename $(EVAL_SOURCES)))
+
 TEST_BINARIES := $(addprefix $(BIN_DIR)/, $(TEST_NAMES))
+EVAL_BINARIES := $(addprefix $(BIN_DIR)/, $(EVAL_NAMES))
 
-# Default: build all test binaries
-all: $(TEST_BINARIES)
+# Group targets
+all: test eval
 
-# Rule to compile each test binary
-$(BIN_DIR)/%: $(TEST_DIR)/%.cpp $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) -o $@ $< $(wildcard $(SRC_DIR)/*.cpp)
+test: $(TEST_BINARIES)
+eval: $(EVAL_BINARIES)
 
 # Ensure bin/ exists
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
 
-# Shortcut: make test target by name (e.g. make cuckoo_unittest)
-$(TEST_NAMES): %: $(BIN_DIR)/%
+# Build rule for tests
+$(BIN_DIR)/%: $(TEST_DIR)/%.cpp $(BIN_DIR)
+	$(CXX) $(CXXFLAGS) -o $@ $< $(wildcard $(SRC_DIR)/*.cpp)
+
+# Build rule for evals
+$(BIN_DIR)/%: $(EVAL_DIR)/%.cpp $(BIN_DIR)
+	$(CXX) $(CXXFLAGS) -o $@ $< $(wildcard $(SRC_DIR)/*.cpp)
+
+# Shortcut: make target_name to run test or eval
+$(TEST_NAMES) $(EVAL_NAMES): %: $(BIN_DIR)/%
 	@echo "Running $@"
 	./$<
 
-# Clean all binaries
+# Clean
 clean:
 	rm -rf $(BIN_DIR)
 
-.PHONY: all clean $(TEST_NAMES)
+.PHONY: all clean test eval $(TEST_NAMES) $(EVAL_NAMES)
 
 

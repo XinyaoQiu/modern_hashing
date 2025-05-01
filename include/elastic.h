@@ -9,9 +9,9 @@
 using KeyType = uint64_t;
 using ValueType = uint64_t;
 
-class CuckooHash : public HashBase<KeyType, ValueType> {
+class ElasticHash : public HashBase<KeyType, ValueType> {
 public:
-    explicit CuckooHash(size_t initial_capacity = 16);
+    explicit ElasticHash(size_t initial_capacity = 16);
 
     void insert(const KeyType& key, const ValueType& value) override;
     std::optional<ValueType> lookup(const KeyType& key) const override;
@@ -23,18 +23,19 @@ public:
     size_t capacity() const override;
 
 private:
+    enum class Status { Empty, Occupied, Deleted };
+
     struct Entry {
         KeyType key;
         ValueType value;
-        bool occupied = false;
+        Status status = Status::Empty;
     };
 
     size_t capacity_;
     size_t size_;
-    std::vector<Entry> table1, table2;
+    std::vector<Entry> table;
     std::hash<KeyType> hasher;
 
-    size_t hash1(const KeyType& key) const;
-    size_t hash2(const KeyType& key) const;
+    size_t probe(const KeyType& key, bool for_insert) const;
     void rehash();
 };

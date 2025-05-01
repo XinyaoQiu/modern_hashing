@@ -17,16 +17,16 @@ void test_insert_and_lookup() {
     std::cout << "test_insert_and_lookup passed\n";
 }
 
-void test_modify() {
+void test_update() {
     DynamicResizing table;
 
     table.insert(42, 10);
-    assert(table.modify(42, 999));
+    assert(table.update(42, 999));
     assert(table.lookup(42).value() == 999);
 
-    assert(!table.modify(1234, 888)); // not present
+    assert(!table.update(1234, 888)); // not present
 
-    std::cout << "test_modify passed\n";
+    std::cout << "test_update passed\n";
 }
 
 void test_remove() {
@@ -60,7 +60,7 @@ void test_heavy_insertions() {
 
 int main() {
     test_insert_and_lookup();
-    test_modify();
+    test_update();
     test_remove();
     test_heavy_insertions();
 
