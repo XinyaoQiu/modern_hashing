@@ -3,7 +3,7 @@
 #include <iostream>
 
 void test_insert_and_lookup() {
-    CuckooHash table;
+    CuckooHash<int, int> table;
 
     table.insert(42, 100);
     assert(table.lookup(42).value() == 100);
@@ -18,7 +18,7 @@ void test_insert_and_lookup() {
 }
 
 void test_delete() {
-    CuckooHash table;
+    CuckooHash<int, int> table;
     table.insert(1, 10);
     table.insert(2, 20);
     table.insert(3, 30);
@@ -34,7 +34,7 @@ void test_delete() {
 }
 
 void test_update() {
-    CuckooHash table;
+    CuckooHash<int, int> table;
     table.insert(5, 50);
     assert(table.update(5, 99));
     assert(table.lookup(5).value() == 99);
@@ -45,28 +45,28 @@ void test_update() {
 }
 
 void test_resize() {
-    CuckooHash table(2);  // small initial capacity to force resize
+    CuckooHash<int, int> table(2);  // small initial capacity to force resize
 
-    for (uint64_t i = 1; i <= 1000; ++i)
+    for (int i = 1; i <= 1000; ++i)
         table.insert(i, i * 10);
 
-    for (uint64_t i = 1; i <= 1000; ++i)
+    for (int i = 1; i <= 1000; ++i)
         assert(table.lookup(i).value() == i * 10);
 
     std::cout << "test_resize passed\n";
 }
 
 void test_collisions() {
-    CuckooHash table;
-    const KeyType base = 0xdeadbeef;
+    CuckooHash<int, int> table;
+    const int base = 0xdeadbeef;
 
     for (int i = 0; i < 200; ++i) {
-        KeyType key = base + i * 1000;
+        int key = base + i * 1000;
         table.insert(key, key * 2);
     }
 
     for (int i = 0; i < 200; ++i) {
-        KeyType key = base + i * 1000;
+        int key = base + i * 1000;
         assert(table.lookup(key).value() == key * 2);
     }
 

@@ -4,7 +4,7 @@
 #include <cassert>
 
 void test_insert_and_lookup() {
-    PerfectHash table;
+    PerfectHash<int, int> table;
 
     table.insert(10, 100);
     table.insert(20, 200);
@@ -19,7 +19,7 @@ void test_insert_and_lookup() {
 }
 
 void test_update() {
-    PerfectHash table;
+    PerfectHash<int, int> table;
 
     table.insert(42, 10);
     assert(table.update(42, 999));
@@ -31,7 +31,7 @@ void test_update() {
 }
 
 void test_remove() {
-    PerfectHash table;
+    PerfectHash<int, int> table;
 
     table.insert(5, 55);
     table.insert(6, 66);
@@ -46,7 +46,7 @@ void test_remove() {
 }
 
 void test_heavy_insertions() {
-    PerfectHash table;
+    PerfectHash<int, int> table;
 
     for (int i = 0; i < 10000; ++i) {
         table.insert(i, i * 10);

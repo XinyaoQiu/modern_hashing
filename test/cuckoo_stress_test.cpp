@@ -7,7 +7,7 @@
 #include <random>
 
 void test_insert_and_lookup() {
-    CuckooHash table;
+    CuckooHash<int, int> table;
 
     table.insert(42, 100);
     auto v1 = table.lookup(42);
@@ -25,7 +25,7 @@ void test_insert_and_lookup() {
 }
 
 void test_delete() {
-    CuckooHash table;
+    CuckooHash<int, int> table;
     table.insert(1, 10);
     table.insert(2, 20);
     table.insert(3, 30);
@@ -41,7 +41,7 @@ void test_delete() {
 }
 
 void test_update() {
-    CuckooHash table;
+    CuckooHash<int, int> table;
     table.insert(5, 50);
     assert(table.update(5, 99));
     assert(table.lookup(5).has_value() && table.lookup(5).value() == 99);
@@ -51,7 +51,7 @@ void test_update() {
 }
 
 void test_bulk_sequential() {
-    CuckooHash table(4);
+    CuckooHash<int, int> table(4);
     const size_t N = 5000;
 
     for (uint64_t i = 0; i < N; ++i) {
@@ -78,7 +78,7 @@ void test_bulk_sequential() {
 }
 
 void test_remove_evens() {
-    CuckooHash table;
+    CuckooHash<int, int> table;
     const size_t N = 2000;
 
     for (uint64_t i = 0; i < N; ++i) {
@@ -103,7 +103,7 @@ void test_remove_evens() {
 }
 
 void test_randomized_operations() {
-    CuckooHash table(8);
+    CuckooHash<int, int> table(8);
     const size_t N = 10000;
     std::vector<uint64_t> keys(N);
     std::iota(keys.begin(), keys.end(), 1);
@@ -144,7 +144,7 @@ void test_randomized_operations() {
 }
 
 void test_forced_collisions() {
-    CuckooHash table(16);
+    CuckooHash<int, int> table(16);
     for (uint64_t i = 0; i < 1000; ++i) {
         uint64_t key = (i << 32) | 0xDEADBEEF;
         table.insert(key, key ^ 0xFFFFFFFF);

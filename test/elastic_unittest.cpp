@@ -3,7 +3,7 @@
 #include <iostream>
 
 void test_insert_and_lookup() {
-    ElasticHash table;
+    ElasticHash<int, int> table;
 
     // Insert and lookup
     table.insert(42, 100);
@@ -32,7 +32,7 @@ void test_insert_and_lookup() {
 }
 
 void test_delete() {
-    ElasticHash table;
+    ElasticHash<int, int> table;
     table.insert(1, 10);
     table.insert(2, 20);
     table.insert(3, 30);
@@ -54,7 +54,7 @@ void test_delete() {
 }
 
 void test_update() {
-    ElasticHash table;
+    ElasticHash<int, int> table;
     table.insert(5, 50);
     assert(table.update(5, 99));
     {
@@ -71,7 +71,7 @@ void test_update() {
 
 void test_resize() {
     // Start with small capacity to force rehash
-    ElasticHash table(2);
+    ElasticHash<int, int> table(2);
     for (uint64_t i = 1; i <= 1000; ++i) {
         table.insert(i, i * 10);
     }
@@ -85,15 +85,15 @@ void test_resize() {
 }
 
 void test_collisions() {
-    ElasticHash table;
-    const KeyType base = 0xdeadbeef;
+    ElasticHash<int, int> table;
+    const int base = 0xdeadbeef;
     for (int i = 0; i < 200; ++i) {
-        KeyType key = base + static_cast<KeyType>(i) * 1000;
+        int key = base + static_cast<int>(i) * 1000;
         table.insert(key, key * 2);
     }
 
     for (int i = 0; i < 200; ++i) {
-        KeyType key = base + static_cast<KeyType>(i) * 1000;
+        int key = base + static_cast<int>(i) * 1000;
         auto val = table.lookup(key);
         assert(val.has_value());
         assert(val.value() == key * 2);

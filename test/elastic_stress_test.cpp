@@ -6,7 +6,7 @@
 #include <random>
 
 void test_insert_and_lookup() {
-    ElasticHash table;
+    ElasticHash<int, int> table;
     table.insert(42, 100);
     auto v1 = table.lookup(42);
     assert(v1.has_value() && v1.value() == 100);
@@ -23,7 +23,7 @@ void test_insert_and_lookup() {
 }
 
 void test_delete() {
-    ElasticHash table;
+    ElasticHash<int, int> table;
     table.insert(1, 10);
     table.insert(2, 20);
     table.insert(3, 30);
@@ -39,7 +39,7 @@ void test_delete() {
 }
 
 void test_update() {
-    ElasticHash table;
+    ElasticHash<int, int> table;
     table.insert(5, 50);
     assert(table.update(5, 99));
     auto v = table.lookup(5);
@@ -50,7 +50,7 @@ void test_update() {
 }
 
 void test_bulk_sequential() {
-    ElasticHash table(4);
+    ElasticHash<int, int> table(4);
     const size_t N = 5000;
 
     for (uint64_t i = 0; i < N; ++i) {
@@ -77,7 +77,7 @@ void test_bulk_sequential() {
 }
 
 void test_remove_evens() {
-    ElasticHash table;
+    ElasticHash<int, int> table;
     const size_t N = 2000;
 
     for (uint64_t i = 0; i < N; ++i) {
@@ -102,7 +102,7 @@ void test_remove_evens() {
 }
 
 void test_randomized_operations() {
-    ElasticHash table(8);
+    ElasticHash<int, int> table(8);
     const size_t N = 10000;
     std::vector<uint64_t> keys(N);
     std::iota(keys.begin(), keys.end(), 1);
