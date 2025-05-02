@@ -2,6 +2,7 @@
 #include <chrono>
 #include <iostream>
 #include <random>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -51,6 +52,25 @@ long long benchmark_lookup(HashTable& table,
     return duration_cast<milliseconds>(end - start).count();
 }
 
+long long baseline_lookup(unordered_map<uint64_t, uint64_t>& table,
+                          const vector<pair<uint64_t, uint64_t>>& dataset) {
+    auto start = high_resolution_clock::now();
+    for (const auto& [k, _] : dataset) {
+        auto val = table.find(k);
+        assert(val != table.end() && val->second == k * 10);
+    }
+    auto end = high_resolution_clock::now();
+    return duration_cast<milliseconds>(end - start).count();
+}
+
+long long baseline_insert(unordered_map<uint64_t, uint64_t>& table,
+                          const vector<pair<uint64_t, uint64_t>>& dataset) {
+    auto start = high_resolution_clock::now();
+    for (const auto& [k, v] : dataset) table[k] = v;
+    auto end = high_resolution_clock::now();
+    return duration_cast<milliseconds>(end - start).count();
+}
+
 int main() {
     auto dataset = generate_dataset(NUM_KEYS, KEY_RANGE);
 
@@ -68,6 +88,15 @@ int main() {
         long long insert_time = benchmark_insert(elastic, dataset);
         long long lookup_time = benchmark_lookup(elastic, dataset);
         cout << "[ElasticHash]\n"
+             << "Insert time: " << insert_time << " ms\n"
+             << "Lookup time: " << lookup_time << " ms\n";
+    }
+
+    {
+        unordered_map<uint64_t, uint64_t> baseline;
+        long long insert_time = baseline_insert(baseline, dataset);
+        long long lookup_time = baseline_lookup(baseline, dataset);
+        cout << "[unordered_map]\n"
              << "Insert time: " << insert_time << " ms\n"
              << "Lookup time: " << lookup_time << " ms\n";
     }
