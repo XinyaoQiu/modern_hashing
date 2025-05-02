@@ -1,9 +1,9 @@
-#include "dynamic_resizing.h"
+#include "baseline1.h"
 #include <cassert>
 #include <iostream>
 
 void test_insert_and_lookup() {
-    DynamicResizing table;
+    Baseline1<int, int> table;
 
     table.insert(10, 100);
     table.insert(20, 200);
@@ -18,7 +18,7 @@ void test_insert_and_lookup() {
 }
 
 void test_update() {
-    DynamicResizing table;
+    Baseline1<int, int> table;
 
     table.insert(42, 10);
     assert(table.update(42, 999));
@@ -30,7 +30,7 @@ void test_update() {
 }
 
 void test_remove() {
-    DynamicResizing table;
+    Baseline1<int, int> table;
 
     table.insert(5, 55);
     table.insert(6, 66);
@@ -45,7 +45,7 @@ void test_remove() {
 }
 
 void test_heavy_insertions() {
-    DynamicResizing table;
+    Baseline1<int, int> table;
 
     for (int i = 0; i < 10000; ++i) {
         table.insert(i, i * 10);
@@ -64,6 +64,6 @@ int main() {
     test_remove();
     test_heavy_insertions();
 
-    std::cout << "All tests passed for Dynamic Resizing.\n";
+    std::cout << "All tests passed for Baseline 1.\n";
     return 0;
 }
