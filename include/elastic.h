@@ -51,47 +51,6 @@ public:
 
         bool placed = false;
 
-        if (lvl == 0) {
-            double eps0 = double(slots_[0].size() - occupied_[0]) / slots_[0].size();
-            size_t tries0 = probes_(eps0);
-            bool placed0 = false;
-
-            for (size_t j = 0; j < tries0; ++j) {
-                size_t idx = hashPos(0, key, j);
-                std::cout << "insert lvl: " << 0 << ", idx: " << idx << "\n";
-                auto &e = slots_[0][idx];
-                if (e.state == State::Occupied) {
-                    if (e.kv->first == key) { e.kv->second = value; return; }
-                    continue;
-                }
-                place(0, idx, key, value);
-                placed0 = true;
-                break;
-            }
-
-            if (!placed0) {
-                uint64_t j = 0;
-                for (;; ++j) {
-                    size_t idx = hashPos(0, key, j);
-                    auto &e = slots_[0][idx];
-                    if (e.state == State::Occupied) {
-                        if (e.kv->first == key) { e.kv->second = value; return; }
-                        continue;
-                    }
-                    place(0, idx, key, value);
-                    placed0 = true;
-                    break;
-                }
-
-                if (!placed0) {
-                    expand(); insert(key, value); 
-                    return;
-                }
-            }
-            ++inserts_done_;
-            return;
-        }
-
         if (eps1 > delta_/2 && eps2 > 0.25) {
             for (size_t j = 0; j < tries; ++j) {
                 size_t idx = hashPos(lvl, key, j);
@@ -185,14 +144,9 @@ public:
 
     std::optional<V> lookup(const K& key) const override {
         for (size_t lvl = 0; lvl + 1 < slots_.size(); ++lvl) {
-            double eps = double(slots_[lvl].size() - occupied_[lvl])
-                       / double(slots_[lvl].size());
-            size_t limit = probes_(eps);
-            std::cout << "limit: " << limit << "\n";
-            std::cout << "key: " << key << "\n";
-            for (size_t j = 0; j < limit; ++j) {
+            size_t limit = probes_(delta_);
+            for (size_t j = 0; j < limit + 10; ++j) {
                 size_t idx = hashPos(lvl, key, j);
-                std::cout << "lookup lvl: " << lvl << ", idx: " << idx << "\n";
                 const auto &e = slots_[lvl][idx];
 
                 if (e.state == State::Empty)
@@ -207,11 +161,9 @@ public:
 
     bool update(const K& key, const V& value) override {
         for (size_t lvl = 0; lvl + 1 < slots_.size(); ++lvl) {
-            double eps = double(slots_[lvl].size() - occupied_[lvl])
-                       / double(slots_[lvl].size());
-            size_t limit = probes_(eps);
+            size_t limit = probes_(delta_);
     
-            for (size_t j = 0; j < limit; ++j) {
+            for (size_t j = 0; j < limit + 10; ++j) {
                 size_t idx = hashPos(lvl, key, j);
                 auto &e = slots_[lvl][idx];
 
@@ -229,14 +181,12 @@ public:
 
     bool remove(const K& key) override {
         for (size_t lvl = 0; lvl + 1 < slots_.size(); ++lvl) {
-            double eps = double(slots_[lvl].size() - occupied_[lvl])
-                       / double(slots_[lvl].size());
-            size_t limit = probes_(eps);
+            size_t limit = probes_(delta_);
     
-            for (size_t j = 0; j < limit; ++j) {
+            for (size_t j = 0; j < limit + 10; ++j) {
                 size_t idx = hashPos(lvl, key, j);
                 auto &e = slots_[lvl][idx];
-    
+
                 if (e.state == State::Empty)
                     break;
     
@@ -288,6 +238,7 @@ public:
 
 private:
     static constexpr size_t DEFAULT_CAPACITY = 1024;
+    static constexpr size_t PROBE_MULTIPLIER = 4;
 
     enum class State { Empty, Occupied, Deleted };
     struct Entry { State state=State::Empty; std::optional<std::pair<K,V>> kv; };
@@ -295,8 +246,8 @@ private:
     std::vector<std::vector<Entry>> slots_;
     std::vector<size_t> occupied_, fullTarget_, partialTarget_;
     size_t total_size_;
-    double delta_;
     size_t inserts_done_;
+    double delta_;
 
     void buildLevels(size_t n) {
         slots_.clear();
@@ -332,7 +283,12 @@ private:
     }
 
     size_t probes_(double eps) const{
-        return size_t(std::ceil(std::min(std::log2(1/eps),std::log2(1/delta_))));
+        if (eps <= 0) {
+            double mx = std::log2(1.0 / delta_);
+            return PROBE_MULTIPLIER * size_t(std::ceil(mx));
+        }
+        size_t base = size_t(std::ceil(std::min(std::log2(1/eps),std::log2(1/delta_))));
+        return base * PROBE_MULTIPLIER;
     }
     size_t maxProbes() const { return probes_(delta_); }
 
