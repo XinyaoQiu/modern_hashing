@@ -210,20 +210,25 @@ private:
     // build levels A1..Aα and overflow A_{α+1} (paper Sec.3)
     void buildLevels(size_t n) {
         slots_.clear(); occupied_.clear();
+        size_t overflow_min = size_t(std::ceil(delta_ * n / 2));
+        size_t remaining = n - overflow_min;
         std::vector<double> geom(alpha_);
         double sum = 0;
         for (size_t i = 0; i < alpha_; ++i) {
-            geom[i] = std::pow(0.75, double(i)); sum += geom[i];
+            geom[i] = std::pow(0.75, double(i));
+            sum += geom[i];
         }
         size_t assigned = 0;
         for (size_t i = 0; i < alpha_; ++i) {
-            size_t sz = size_t(std::floor(n * geom[i] / sum));
+            size_t sz = size_t(std::floor(remaining * geom[i] / sum));
             slots_.emplace_back(sz);
             occupied_.push_back(0);
             assigned += sz;
         }
-        // overflow level gets remainder
         size_t rem = n - assigned;
+        if (rem < overflow_min) {
+            rem = overflow_min;
+        }
         slots_.emplace_back(rem);
         occupied_.push_back(0);
     }
