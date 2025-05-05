@@ -22,9 +22,9 @@ public:
     using KeyType = K;
     using ValueType = V;
 
-    FunnelHash() : FunnelHash(DEFAULT_CAPACITY, 0.1) {}
+    FunnelHash() : FunnelHash(DEFAULT_CAPACITY, 0.2) {}
 
-    explicit FunnelHash(size_t n, double delta = 0.1)
+    explicit FunnelHash(size_t n, double delta = 0.2)
         : total_size_(n), delta_(delta), inserts_done_(0) {
         // Compute number of levels α and bucket size β (paper Sec.3)
         alpha_ = size_t(std::ceil(4 * std::log2(1.0 / delta_) + 10));
@@ -189,15 +189,20 @@ public:
         for (size_t i = 0; i < slots_.size(); ++i) {
             std::cout << "Level " << i << ": ";
             for (const auto &e : slots_[i]) {
-                char c = e.state==State::Occupied ? 'O' : (e.state==State::Deleted?'D':'E');
-                std::cout << c;
+                if (e.state == State::Occupied) {
+                    std::cout << "(" << e.kv->first << ") ";
+                } else if (e.state == State::Deleted) {
+                    std::cout << "[D] ";
+                } else {
+                    std::cout << "[E] ";
+                }
             }
             std::cout << "\n";
         }
     }
 
 private:
-    static constexpr size_t DEFAULT_CAPACITY = 1024;
+    static constexpr size_t DEFAULT_CAPACITY = 64;
     enum class State { Empty, Occupied, Deleted };
     struct Entry { State state = State::Empty; std::optional<std::pair<K,V>> kv; };
 
@@ -210,27 +215,30 @@ private:
     // build levels A1..Aα and overflow A_{α+1} (paper Sec.3)
     void buildLevels(size_t n) {
         slots_.clear(); occupied_.clear();
-        size_t overflow_min = size_t(std::ceil(delta_ * n / 2));
-        size_t remaining = n - overflow_min;
+        size_t minOverflow = size_t(std::ceil(delta_ * n / 2));
+        size_t rem = n - minOverflow;
         std::vector<double> geom(alpha_);
         double sum = 0;
         for (size_t i = 0; i < alpha_; ++i) {
-            geom[i] = std::pow(0.75, double(i));
-            sum += geom[i];
+            geom[i] = std::pow(0.75, double(i)); sum += geom[i];
         }
+        std::vector<size_t> sizes;
         size_t assigned = 0;
         for (size_t i = 0; i < alpha_; ++i) {
-            size_t sz = size_t(std::floor(remaining * geom[i] / sum));
-            slots_.emplace_back(sz);
-            occupied_.push_back(0);
+            size_t sz = size_t(std::floor(rem * geom[i] / sum));
+            if (sz < beta_) break;
+            sz = (sz / beta_) * beta_;
+            sizes.push_back(sz);
             assigned += sz;
         }
-        size_t rem = n - assigned;
-        if (rem < overflow_min) {
-            rem = overflow_min;
+        alpha_ = sizes.size();
+        size_t overflowSz = n - assigned;
+        if (overflowSz < minOverflow) overflowSz = minOverflow;
+        sizes.push_back(overflowSz);
+        for (size_t sz : sizes) {
+            slots_.emplace_back(sz);
+            occupied_.push_back(0);
         }
-        slots_.emplace_back(rem);
-        occupied_.push_back(0);
     }
 
     static uint64_t splitmix64(uint64_t x) {
@@ -248,7 +256,9 @@ private:
     }
 
     size_t hashToBucket(size_t lvl, const K& key) const {
-        return hashPos(lvl, key, 0);
+        uint64_t h = std::hash<K>{}(key);
+        uint64_t mix = h ^ (uint64_t(lvl) * 0x9e3779b97f4a7c15ULL);
+        return size_t(splitmix64(mix));
     }
 
     void place(size_t lvl, size_t idx, const K& key, const V& val) {
