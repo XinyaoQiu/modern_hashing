@@ -29,7 +29,7 @@ public:
         // Compute number of levels α and bucket size β (paper Sec.3)
         alpha_ = size_t(std::ceil(4 * std::log2(1.0 / delta_) + 10));
         beta_  = size_t(std::ceil(std::log2(1.0 / delta_)));
-        buildLevels(n);
+        buildLevels(n < DEFAULT_CAPACITY ? DEFAULT_CAPACITY : n);
     }
 
     void insert(const K& key, const V& value) override {
@@ -62,42 +62,7 @@ public:
         }
         // Overflow level A_{α+1}
         // First half: uniform probing with up to O(log log n) attempts
-        size_t m = slots_[alpha_].size();
-        size_t half = m / 2;
-        size_t limit = size_t(std::ceil(std::log2(std::log2(total_size_ + 2))));
-        for (size_t t = 0; t < limit; ++t) {
-            size_t idx = hashPos(alpha_, key, t) % half;
-            Entry &e = slots_[alpha_][idx];
-            if (e.state == State::Occupied) {
-                if (e.kv->first == key) {e.kv->second = value; return;} continue;
-            }
-            place(alpha_, idx, key, value);
-            ++inserts_done_;
-            return;
-        }
-        // Second half: two-choice buckets of size 2·log log n
-        size_t bucket_size = limit * 2;
-        size_t nb2 = half / bucket_size;
-        // hash two buckets
-        size_t h1 = hashToBucket(alpha_, key) % nb2;
-        size_t h2 = hashToBucket(alpha_, key ^ 0x9e3779b97f4a7c15ULL) % nb2;
-        // scan interleaved
-        for (size_t j = 0; j < bucket_size; ++j) {
-            size_t i1 = half + h1 * bucket_size + j;
-            size_t i2 = half + h2 * bucket_size + j;
-            for (size_t idx : {i1, i2}) {
-                Entry &e = slots_[alpha_][idx];
-                if (e.state == State::Occupied) {
-                    if (e.kv->first == key) {e.kv->second = value; return;} continue;
-                }
-                place(alpha_, idx, key, value);
-                ++inserts_done_;
-                return;
-            }
-        }
-        // if still no place, expand and retry
-        expand();
-        insert(key, value);
+        insertOverflow(key, value);
     }
 
     std::optional<V> lookup(const K& key) const override {
@@ -113,32 +78,7 @@ public:
                     return e.kv->second;
             }
         }
-        // overflow search
-        size_t m = slots_[alpha_].size();
-        size_t half = m/2;
-        size_t limit = size_t(std::ceil(std::log2(std::log2(total_size_ + 2))));
-        // uniform half
-        for (size_t t = 0; t < limit; ++t) {
-            size_t idx = hashPos(alpha_, key, t) % half;
-            const Entry &e = slots_[alpha_][idx];
-            if (e.state == State::Empty) break;
-            if (e.state == State::Occupied && e.kv->first == key)
-                return e.kv->second;
-        }
-        // two-choice half
-        size_t bucket_size = limit*2;
-        size_t nb2 = half / bucket_size;
-        size_t h1 = hashToBucket(alpha_, key) % nb2;
-        size_t h2 = hashToBucket(alpha_, key ^ 0x9e3779b97f4a7c15ULL) % nb2;
-        for (size_t j = 0; j < bucket_size; ++j) {
-            for (size_t idx : {half + h1*bucket_size + j, half + h2*bucket_size + j}) {
-                const Entry &e = slots_[alpha_][idx];
-                if (e.state == State::Empty) break;
-                if (e.state == State::Occupied && e.kv->first == key)
-                    return e.kv->second;
-            }
-        }
-        return std::nullopt;
+        return lookupOverflow(key);
     }
 
     bool update(const K& key, const V& value) override {
@@ -239,6 +179,96 @@ private:
             slots_.emplace_back(sz);
             occupied_.push_back(0);
         }
+    }
+
+    void insertOverflow(const K& key, const V& value) {
+        size_t m = slots_[alpha_].size();
+        size_t half = m / 2;
+        size_t limit = size_t(std::ceil(std::log2(std::log2(total_size_ + 2))));
+        // uniform half
+        for (size_t t = 0; t < limit; ++t) {
+            size_t idx = hashPos(alpha_, key, t) % half;
+            Entry &e = slots_[alpha_][idx];
+            if (e.state == State::Occupied) {
+                if (e.kv->first == key) { e.kv->second = value; return; }
+                continue;
+            }
+            place(alpha_, idx, key, value);
+            ++inserts_done_;
+            return;
+        }
+        // two-choice or single-scan fallback
+        size_t bucket_size = limit * 2;
+        if (half >= bucket_size * 2) {
+            size_t nb2 = half / bucket_size;
+            size_t h1 = hashToBucket(alpha_, key) % nb2;
+            size_t h2 = hashToBucket(alpha_, key ^ 0x9e3779b97f4a7c15ULL) % nb2;
+            for (size_t j = 0; j < bucket_size; ++j) {
+                size_t i1 = half + h1 * bucket_size + j;
+                size_t i2 = half + h2 * bucket_size + j;
+                for (size_t idx : {i1, i2}) {
+                    Entry &e = slots_[alpha_][idx];
+                    if (e.state == State::Occupied) {
+                        if (e.kv->first == key) { e.kv->second = value; return; }
+                        continue;
+                    }
+                    place(alpha_, idx, key, value);
+                    ++inserts_done_;
+                    return;
+                }
+            }
+        } else {
+            // scan entire second half
+            for (size_t idx = half; idx < m; ++idx) {
+                Entry &e = slots_[alpha_][idx];
+                if (e.state == State::Occupied) {
+                    if (e.kv->first == key) { e.kv->second = value; return; }
+                    continue;
+                }
+                place(alpha_, idx, key, value);
+                ++inserts_done_;
+                return;
+            }
+        }
+        expand(); insert(key, value);
+    }
+
+    std::optional<V> lookupOverflow(const K& key) const {
+        size_t m = slots_[alpha_].size();
+        if (m < 1) return {};
+        size_t half = m / 2;
+        size_t limit = size_t(std::ceil(std::log2(std::log2(total_size_ + 2))));
+        // uniform half
+        for (size_t t = 0; t < limit; ++t) {
+            size_t idx = hashPos(alpha_, key, t) % half;
+            const Entry &e = slots_[alpha_][idx];
+            if (e.state == State::Empty) break;
+            if (e.state == State::Occupied && e.kv->first == key)
+                return e.kv->second;
+        }
+        // two-choice or single-scan fallback
+        size_t bucket_size = limit * 2;
+        if (half >= bucket_size * 2) {
+            size_t nb2 = half / bucket_size;
+            size_t h1 = hashToBucket(alpha_, key) % nb2;
+            size_t h2 = hashToBucket(alpha_, key ^ 0x9e3779b97f4a7c15ULL) % nb2;
+            for (size_t j = 0; j < bucket_size; ++j) {
+                for (size_t idx : {half + h1 * bucket_size + j, half + h2 * bucket_size + j}) {
+                    const Entry &e = slots_[alpha_][idx];
+                    if (e.state == State::Empty) break;
+                    if (e.state == State::Occupied && e.kv->first == key)
+                        return e.kv->second;
+                }
+            }
+        } else {
+            for (size_t idx = half; idx < m; ++idx) {
+                const Entry &e = slots_[alpha_][idx];
+                if (e.state == State::Empty) continue;
+                if (e.state == State::Occupied && e.kv->first == key)
+                    return e.kv->second;
+            }
+        }
+        return {};
     }
 
     static uint64_t splitmix64(uint64_t x) {
