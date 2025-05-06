@@ -1,6 +1,6 @@
 # Compiler and flags
 CXX := g++
-CXXFLAGS := -std=c++17 -O2 -Wall -Iinclude
+CXXFLAGS := -std=c++17 -O2 -Wall -Iinclude -g
 
 # Directories
 TEST_DIR := test
