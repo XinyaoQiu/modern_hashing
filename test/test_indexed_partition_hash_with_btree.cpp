@@ -3,7 +3,7 @@
 #include <iostream>
 
 void test_insert_and_lookup() {
-    IndexedPartitionHashTable<int, int> table;
+    IndexedPartitionHashWithBTree<int, int> table;
 
     table.insert(42, 100);
     assert(table.lookup(42).value() == 100);
@@ -18,7 +18,7 @@ void test_insert_and_lookup() {
 }
 
 void test_delete() {
-    IndexedPartitionHashTable<int, int> table;
+    IndexedPartitionHashWithBTree<int, int> table;
     table.insert(1, 10);
     table.insert(2, 20);
     table.insert(3, 30);
@@ -34,7 +34,7 @@ void test_delete() {
 }
 
 void test_update() {
-    IndexedPartitionHashTable<int, int> table;
+    IndexedPartitionHashWithBTree<int, int> table;
     table.insert(5, 50);
     assert(table.update(5, 99));
     assert(table.lookup(5).value() == 99);
@@ -45,7 +45,7 @@ void test_update() {
 }
 
 void test_resize() {
-    IndexedPartitionHashTable<int, int> table(2);  // small initial capacity to force resize
+    IndexedPartitionHashWithBTree<int, int> table(2);  // small initial capacity to force resize
 
     for (int i = 1; i <= 1000; ++i)
         table.insert(i, i * 10);
@@ -57,7 +57,7 @@ void test_resize() {
 }
 
 void test_collisions() {
-    IndexedPartitionHashTable<int, int> table;
+    IndexedPartitionHashWithBTree<int, int> table;
     const int base = 0xdeadbeef;
 
     for (int i = 0; i < 200; ++i) {
@@ -80,6 +80,6 @@ int main() {
     test_resize();
     test_collisions();
 
-    std::cout << "All IndexedPartitionHashTable tests passed successfully.\n";
+    std::cout << "All IndexedPartitionHashWithBTree tests passed successfully.\n";
     return 0;
 }
