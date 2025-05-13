@@ -1,0 +1,7 @@
+=== Benchmark Configuration: hashtable=unordered_map, type=number, capacity=100000000, load_factor=0.5, num_keys=50000000 ===
+
+[unordered_map]
+Insert time: 31022 ms
+Lookup time: 2300 ms
+Update time: 2713 ms
+Delete time: 9723 ms
