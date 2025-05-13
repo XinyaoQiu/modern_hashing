@@ -6,6 +6,7 @@ CXXFLAGS := -std=c++17 -O2 -Wall -Iinclude -g
 TEST_DIR := test
 EVAL_DIR := evaluation
 BIN_DIR := bin
+OUTPUT_DIR := output
 
 # Automatically find all test and evaluation source files
 TEST_SOURCES := $(wildcard $(TEST_DIR)/*.cpp)
@@ -28,6 +29,10 @@ eval: $(EVAL_BINARIES)
 # Ensure bin/ exists before building
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
+
+# Ensure output/ exists before building
+$(OUTPUT_DIR):
+	mkdir -p $(OUTPUT_DIR)
 
 # Build rule for test binaries
 $(BIN_DIR)/%: $(TEST_DIR)/%.cpp | $(BIN_DIR)
