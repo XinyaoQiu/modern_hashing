@@ -34,3 +34,5 @@ Makefile
 # Logs and temporary files
 *.log
 *.tmp
+
+output
