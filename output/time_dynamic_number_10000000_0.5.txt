@@ -1,7 +1,0 @@
-=== Benchmark Configuration: hashtable=dynamic, type=number, capacity=10000000, load_factor=0.5, num_keys=5000000 ===
-
-[DynamicResizeWithLinearProb]
-Insert time: 137 ms
-Lookup time: 103 ms
-Update time: 94 ms
-Delete time: 90 ms
