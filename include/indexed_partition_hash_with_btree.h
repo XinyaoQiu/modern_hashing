@@ -101,18 +101,6 @@ class IndexedPartitionHashWithBTree : public HashBase<K, V> {
     }
 
     std::optional<V> lookup(const K& key) const override {
-        if (key == 76893931) {
-            uint64_t b = bucket_index(key);
-            const Bucket& bucket = buckets_[b];
-
-            uint32_t fp = fingerprint(key, bucket.fingerprint_salt_);
-            auto it = bucket.query_mapper.find(fp);
-            if (it == bucket.query_mapper.end()) return std::nullopt;
-
-            uint64_t pos = it->second;
-            if (pos >= bucket.count) return std::nullopt;
-            return bucket.entries[pos].value;
-        }
         uint64_t b = bucket_index(key);
         const Bucket& bucket = buckets_[b];
 
