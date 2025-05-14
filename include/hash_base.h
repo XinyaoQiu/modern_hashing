@@ -3,21 +3,25 @@
 
 #include <optional>
 
-template<typename K, typename V>
+template <typename K, typename V>
 class HashBase {
-public:
+   public:
     virtual ~HashBase() = default;
 
-    // Insert a key-value pair. If the key already exists, the subclass may choose to update it.
+    // Insert a key-value pair. If the key already exists, the subclass may
+    // choose to update it.
     virtual void insert(const K& key, const V& value) = 0;
 
-    // Lookup the value associated with a key. Return std::nullopt if the key doesn't exist.
+    // Lookup the value associated with a key. Return std::nullopt if the key
+    // doesn't exist.
     virtual std::optional<V> lookup(const K& key) const = 0;
 
-    // Remove a key. Return true if the key existed and was removed, false otherwise.
+    // Remove a key. Return true if the key existed and was removed, false
+    // otherwise.
     virtual bool remove(const K& key) = 0;
 
-    // Update the value for a key. Return true if updated, false if the key doesn't exist.
+    // Update the value for a key. Return true if updated, false if the key
+    // doesn't exist.
     virtual bool update(const K& key, const V& value) = 0;
 
     // Return the number of elements currently stored.

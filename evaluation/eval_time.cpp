@@ -93,9 +93,8 @@ long long benchmark_delete(HashTable& table, DataSet& dataset) {
     return duration_cast<milliseconds>(end - start).count();
 }
 
-template <typename DataSet>
-long long baseline_lookup(unordered_map<uint64_t, uint64_t>& table,
-                          DataSet& dataset) {
+template <typename HashTable, typename DataSet>
+long long baseline_lookup(HashTable& table, DataSet& dataset) {
     auto start = high_resolution_clock::now();
     for (const auto& [k, v] : dataset) {
         auto val = table.find(k);
@@ -105,18 +104,16 @@ long long baseline_lookup(unordered_map<uint64_t, uint64_t>& table,
     return duration_cast<milliseconds>(end - start).count();
 }
 
-template <typename DataSet>
-long long baseline_insert(unordered_map<uint64_t, uint64_t>& table,
-                          DataSet& dataset) {
+template <typename HashTable, typename DataSet>
+long long baseline_insert(HashTable& table, DataSet& dataset) {
     auto start = high_resolution_clock::now();
     for (const auto& [k, v] : dataset) table[k] = v;
     auto end = high_resolution_clock::now();
     return duration_cast<milliseconds>(end - start).count();
 }
 
-template <typename DataSet>
-long long baseline_update(unordered_map<uint64_t, uint64_t>& table,
-                          DataSet& dataset) {
+template <typename HashTable, typename DataSet>
+long long baseline_update(HashTable& table, DataSet& dataset) {
     auto start = high_resolution_clock::now();
     for (const auto& [k, v] : dataset) {
         table[k] = k + v;
@@ -125,9 +122,8 @@ long long baseline_update(unordered_map<uint64_t, uint64_t>& table,
     return duration_cast<milliseconds>(end - start).count();
 }
 
-template <typename DataSet>
-long long baseline_delete(unordered_map<uint64_t, uint64_t>& table,
-                          DataSet& dataset) {
+template <typename HashTable, typename DataSet>
+long long baseline_delete(HashTable& table, DataSet& dataset) {
     auto start = high_resolution_clock::now();
     for (const auto& [k, _] : dataset) {
         table.erase(k);
@@ -136,9 +132,8 @@ long long baseline_delete(unordered_map<uint64_t, uint64_t>& table,
     return duration_cast<milliseconds>(end - start).count();
 }
 
-template <typename DataSet>
-void run_baseline(unordered_map<uint64_t, uint64_t>& table, DataSet& dataset,
-                  ofstream& of) {
+template <typename HashTable, typename DataSet>
+void run_baseline(HashTable& table, DataSet& dataset, ofstream& of) {
     long long insert_time = baseline_insert(table, dataset);
     long long lookup_time = baseline_lookup(table, dataset);
     long long update_time = baseline_update(table, dataset);
@@ -272,10 +267,9 @@ int main(int argc, char* argv[]) {
             generate_string_dataset(num_keys, key_range);
         if (hashtable == "unordered_map") {
             unordered_map<string, string> table;
-            run_benchmark(table, dataset, of, hashtable);
+            run_baseline(table, dataset, of);
         } else if (hashtable == "dynamic") {
-            DynamicResizeWithLinearProb<string, string> table(
-                table_capacity);
+            DynamicResizeWithLinearProb<string, string> table(table_capacity);
             run_benchmark(table, dataset, of, "DynamicResizeWithLinearProb");
         } else if (hashtable == "fixed") {
             FixedListChainedHashTable<string, string> table(table_capacity);
@@ -284,10 +278,8 @@ int main(int argc, char* argv[]) {
             PerfectHash<string, string> table(table_capacity);
             run_benchmark(table, dataset, of, "PerfectHash");
         } else if (hashtable == "partition") {
-            IndexedPartitionHashWithBTree<string, string> table(
-                table_capacity);
-            run_benchmark(table, dataset, of,
-            "IndexedPartitionHashWithBTree");
+            IndexedPartitionHashWithBTree<string, string> table(table_capacity);
+            run_benchmark(table, dataset, of, "IndexedPartitionHashWithBTree");
         } else if (hashtable == "cuckoo") {
             CuckooHash<string, string> table(table_capacity);
             run_benchmark(table, dataset, of, "CuckooHash");

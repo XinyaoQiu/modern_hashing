@@ -1,14 +1,13 @@
 #pragma once
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <vector>
-#include <optional>
-#include <utility>
-#include <stdexcept>
-#include <cmath>
 #include <functional>
-
 #include <iostream>
+#include <optional>
+#include <stdexcept>
+#include <utility>
+#include <vector>
 
 #include "hash_base.h"
 
@@ -21,22 +20,19 @@
 
 template <typename K, typename V>
 class ElasticHash : public HashBase<K, V> {
-public:
+   public:
     using KeyType = K;
     using ValueType = V;
 
-    ElasticHash()
-        : ElasticHash(DEFAULT_CAPACITY, 0.1)
-    {}
+    ElasticHash() : ElasticHash(DEFAULT_CAPACITY, 0.1) {}
 
     explicit ElasticHash(size_t n, double delta = 0.1)
-        : total_size_(n), delta_(delta), inserts_done_(0)
-    {
+        : total_size_(n), delta_(delta), inserts_done_(0) {
         buildLevels(n);
         computeTargets();
     }
 
-    void insert(const K& key, const V& value) override {
+    void insert(const K &key, const V &value) override {
         if (inserts_done_ + 1 > total_size_ * (1 - delta_)) {
             expand();
             insert(key, value);
@@ -45,13 +41,15 @@ public:
 
         size_t lvl = currentBatch();
 
-        double eps1 = double(slots_[lvl].size() - occupied_[lvl]) / slots_[lvl].size();
-        double eps2 = double(slots_[lvl+1].size() - occupied_[lvl+1]) / slots_[lvl+1].size();
+        double eps1 =
+            double(slots_[lvl].size() - occupied_[lvl]) / slots_[lvl].size();
+        double eps2 = double(slots_[lvl + 1].size() - occupied_[lvl + 1]) /
+                      slots_[lvl + 1].size();
         size_t tries = probes_(std::min(eps1, eps2));
 
         bool placed = false;
 
-        if (eps1 > delta_/2 && eps2 > 0.25) {
+        if (eps1 > delta_ / 2 && eps2 > 0.25) {
             for (size_t j = 0; j < tries; ++j) {
                 size_t idx = hashPos(lvl, key, j);
                 auto &e = slots_[lvl][idx];
@@ -72,8 +70,8 @@ public:
             if (!placed) {
                 uint64_t j = 0;
                 for (;; ++j) {
-                    size_t idx = hashPos(lvl+1, key, j);
-                    auto &e = slots_[lvl+1][idx];
+                    size_t idx = hashPos(lvl + 1, key, j);
+                    auto &e = slots_[lvl + 1][idx];
                     if (e.state == State::Occupied) {
                         if (e.kv->first == key) {
                             e.kv->second = value;
@@ -81,7 +79,7 @@ public:
                         }
                         continue;
                     }
-                    place(lvl+1, idx, key, value);
+                    place(lvl + 1, idx, key, value);
                     placed = true;
                     break;
                 }
@@ -93,11 +91,11 @@ public:
             }
         }
 
-        else if (eps1 <= delta_/2) {
+        else if (eps1 <= delta_ / 2) {
             uint64_t j = 0;
             for (;; ++j) {
-                size_t idx = hashPos(lvl+1, key, j);
-                auto &e = slots_[lvl+1][idx];
+                size_t idx = hashPos(lvl + 1, key, j);
+                auto &e = slots_[lvl + 1][idx];
                 if (e.state == State::Occupied) {
                     if (e.kv->first == key) {
                         e.kv->second = value;
@@ -105,7 +103,7 @@ public:
                     }
                     continue;
                 }
-                place(lvl+1, idx, key, value);
+                place(lvl + 1, idx, key, value);
                 placed = true;
                 break;
             }
@@ -142,15 +140,14 @@ public:
         ++inserts_done_;
     }
 
-    std::optional<V> lookup(const K& key) const override {
+    std::optional<V> lookup(const K &key) const override {
         for (size_t lvl = 0; lvl + 1 < slots_.size(); ++lvl) {
             size_t limit = probes_(delta_);
             for (size_t j = 0; j < limit + 10; ++j) {
                 size_t idx = hashPos(lvl, key, j);
                 const auto &e = slots_[lvl][idx];
 
-                if (e.state == State::Empty)
-                    break;
+                if (e.state == State::Empty) break;
 
                 if (e.state == State::Occupied && e.kv->first == key)
                     return e.kv->second;
@@ -159,17 +156,16 @@ public:
         return std::nullopt;
     }
 
-    bool update(const K& key, const V& value) override {
+    bool update(const K &key, const V &value) override {
         for (size_t lvl = 0; lvl + 1 < slots_.size(); ++lvl) {
             size_t limit = probes_(delta_);
-    
+
             for (size_t j = 0; j < limit + 10; ++j) {
                 size_t idx = hashPos(lvl, key, j);
                 auto &e = slots_[lvl][idx];
 
-                if (e.state == State::Empty)
-                    break;
-    
+                if (e.state == State::Empty) break;
+
                 if (e.state == State::Occupied && e.kv->first == key) {
                     e.kv->second = value;
                     return true;
@@ -179,17 +175,16 @@ public:
         return false;
     }
 
-    bool remove(const K& key) override {
+    bool remove(const K &key) override {
         for (size_t lvl = 0; lvl + 1 < slots_.size(); ++lvl) {
             size_t limit = probes_(delta_);
-    
+
             for (size_t j = 0; j < limit + 10; ++j) {
                 size_t idx = hashPos(lvl, key, j);
                 auto &e = slots_[lvl][idx];
 
-                if (e.state == State::Empty)
-                    break;
-    
+                if (e.state == State::Empty) break;
+
                 if (e.state == State::Occupied && e.kv->first == key) {
                     e.state = State::Deleted;
                     e.kv.reset();
@@ -236,18 +231,21 @@ public:
         }
     }
 
-private:
+   private:
     static constexpr size_t DEFAULT_CAPACITY = 1024;
     static constexpr size_t PROBE_MULTIPLIER = 4;
 
     enum class State { Empty, Occupied, Deleted };
-    struct Entry { State state=State::Empty; std::optional<std::pair<K,V>> kv; };
+    struct Entry {
+        State state = State::Empty;
+        std::optional<std::pair<K, V>> kv;
+    };
 
     std::vector<std::vector<Entry>> slots_;
     std::vector<size_t> occupied_, fullTarget_, partialTarget_;
     size_t total_size_;
-    size_t inserts_done_;
     double delta_;
+    size_t inserts_done_;
 
     void buildLevels(size_t n) {
         slots_.clear();
@@ -263,31 +261,33 @@ private:
     }
 
     void computeTargets() {
-        size_t L=slots_.size();
+        size_t L = slots_.size();
         fullTarget_.resize(L);
         partialTarget_.resize(L);
-        for (size_t i=0;i<L;++i) {
-            size_t sz=slots_[i].size();
-            fullTarget_[i]=sz - size_t(std::floor(delta_*sz/2));
-            partialTarget_[i]=size_t(std::ceil(0.75*sz));
+        for (size_t i = 0; i < L; ++i) {
+            size_t sz = slots_[i].size();
+            fullTarget_[i] = sz - size_t(std::floor(delta_ * sz / 2));
+            partialTarget_[i] = size_t(std::ceil(0.75 * sz));
         }
     }
 
     size_t currentBatch() const {
-        size_t L=slots_.size();
-        for (size_t i=0;i+1<L;++i) {
-            if (occupied_[i]<fullTarget_[i] || occupied_[i+1]<partialTarget_[i+1])
+        size_t L = slots_.size();
+        for (size_t i = 0; i + 1 < L; ++i) {
+            if (occupied_[i] < fullTarget_[i] ||
+                occupied_[i + 1] < partialTarget_[i + 1])
                 return i;
         }
-        return L-2;
+        return L - 2;
     }
 
-    size_t probes_(double eps) const{
+    size_t probes_(double eps) const {
         if (eps <= 0) {
             double mx = std::log2(1.0 / delta_);
             return PROBE_MULTIPLIER * size_t(std::ceil(mx));
         }
-        size_t base = size_t(std::ceil(std::min(std::log2(1/eps),std::log2(1/delta_))));
+        size_t base = size_t(
+            std::ceil(std::min(std::log2(1 / eps), std::log2(1 / delta_))));
         return base * PROBE_MULTIPLIER;
     }
     size_t maxProbes() const { return probes_(delta_); }
@@ -299,7 +299,7 @@ private:
         return x ^ (x >> 31);
     }
 
-    size_t hashPos(size_t lvl, const K& key, size_t j) const {
+    size_t hashPos(size_t lvl, const K &key, size_t j) const {
         uint64_t h = std::hash<K>{}(key);
         uint64_t a = splitmix64(h ^ (uint64_t)lvl);
         uint64_t b = splitmix64(h ^ (uint64_t)j);
@@ -307,28 +307,29 @@ private:
         return idx % slots_[lvl].size();
     }
 
-    void place(size_t lvl,size_t idx,const K& key,const V& val){
-        slots_[lvl][idx].state=State::Occupied;
-        slots_[lvl][idx].kv={key,val};
+    void place(size_t lvl, size_t idx, const K &key, const V &val) {
+        slots_[lvl][idx].state = State::Occupied;
+        slots_[lvl][idx].kv = {key, val};
         ++occupied_[lvl];
     }
 
-    void expand(){
-        total_size_*=2;
-        std::vector<std::pair<K,V>> items;
+    void expand() {
+        total_size_ *= 2;
+        std::vector<std::pair<K, V>> items;
         items.reserve(inserts_done_);
-        for(auto &lvl:slots_)
-            for(auto &e:lvl)
-                if(e.state==State::Occupied)
-                    items.push_back(*e.kv);
+        for (auto &lvl : slots_)
+            for (auto &e : lvl)
+                if (e.state == State::Occupied) items.push_back(*e.kv);
         buildLevels(total_size_);
-        computeTargets();inserts_done_=0;
-        for(auto &kv:items) insert(kv.first,kv.second);
+        computeTargets();
+        inserts_done_ = 0;
+        for (auto &kv : items) insert(kv.first, kv.second);
     }
 
     static size_t nextPow2(size_t n) {
-        if(n<2)return 1;
-        --n;for(size_t i=1;i<sizeof(n)*8;i<<=1)n|=n>>i;
+        if (n < 2) return 1;
+        --n;
+        for (size_t i = 1; i < sizeof(n) * 8; i <<= 1) n |= n >> i;
         return ++n;
     }
 };

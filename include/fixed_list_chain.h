@@ -1,19 +1,20 @@
 #pragma once
 
-#include "hash_base.h"
-#include <vector>
+#include <functional>
 #include <list>
 #include <optional>
-#include <functional>
+#include <vector>
+
+#include "hash_base.h"
 
 /**
  * @brief Fixed-size Hash Table using Separate Chaining (linked lists).
- * 
+ *
  * No resizing. Each slot holds a std::list of key-value pairs.
  */
 template <typename K, typename V>
 class FixedListChainedHashTable : public HashBase<K, V> {
-public:
+   public:
     using KeyType = K;
     using ValueType = V;
 
@@ -35,8 +36,7 @@ public:
     std::optional<V> lookup(const K& key) const override {
         size_t index = hash(key);
         for (const auto& [k, v] : table[index]) {
-            if (k == key)
-                return v;
+            if (k == key) return v;
         }
         return std::nullopt;
     }
@@ -65,9 +65,7 @@ public:
         return false;
     }
 
-    size_t size() const override {
-        return size_;
-    }
+    size_t size() const override { return size_; }
 
     void clear() override {
         for (auto& chain : table) {
@@ -80,17 +78,13 @@ public:
         return static_cast<double>(size_) / static_cast<double>(capacity_);
     }
 
-    size_t capacity() const override {
-        return capacity_;
-    }
+    size_t capacity() const override { return capacity_; }
 
-private:
+   private:
     size_t capacity_;
     size_t size_;
     std::vector<std::list<std::pair<K, V>>> table;
     std::hash<K> hasher;
 
-    size_t hash(const K& key) const {
-        return hasher(key) % capacity_;
-    }
+    size_t hash(const K& key) const { return hasher(key) % capacity_; }
 };

@@ -6,26 +6,25 @@ const int ORDER = 6;
 
 // class for the node present in a B-Tree
 class BTreeNode {
-public:
+   public:
     // Array of keys
-    pair<uint8_t, uint8_t> keys[ORDER - 1]; 
+    pair<uint8_t, uint8_t> keys[ORDER - 1];
     // Array of child pointers
-    BTreeNode* children[ORDER]; 
-     // Current number of keys
+    BTreeNode* children[ORDER];
+    // Current number of keys
     int n;
     // True if leaf node, false otherwise
-    bool leaf; 
+    bool leaf;
 
     BTreeNode(bool isLeaf = true) : n(0), leaf(isLeaf) {
-        for (int i = 0; i < ORDER; i++)
-            children[i] = nullptr;
+        for (int i = 0; i < ORDER; i++) children[i] = nullptr;
     }
 };
 
 // class for B-Tree
 class BTree {
-private:
-    BTreeNode* root; // Pointer to root node
+   private:
+    BTreeNode* root;  // Pointer to root node
 
     // Function to split a full child node
     void splitChild(BTreeNode* x, int i) {
@@ -43,13 +42,11 @@ private:
 
         y->n = ORDER / 2 - 1;
 
-        for (int j = x->n; j >= i + 1; j--)
-            x->children[j + 1] = x->children[j];
+        for (int j = x->n; j >= i + 1; j--) x->children[j + 1] = x->children[j];
 
         x->children[i + 1] = z;
 
-        for (int j = x->n - 1; j >= i; j--)
-            x->keys[j + 1] = x->keys[j];
+        for (int j = x->n - 1; j >= i; j--) x->keys[j + 1] = x->keys[j];
 
         x->keys[i] = y->keys[ORDER / 2 - 1];
         x->n = x->n + 1;
@@ -68,15 +65,13 @@ private:
             x->keys[i + 1] = k;
             x->n = x->n + 1;
         } else {
-            while (i >= 0 && k < x->keys[i])
-                i--;
+            while (i >= 0 && k < x->keys[i]) i--;
 
             i++;
             if (x->children[i]->n == ORDER - 1) {
                 splitChild(x, i);
 
-                if (k > x->keys[i])
-                    i++;
+                if (k > x->keys[i]) i++;
             }
             insertNonFull(x->children[i], k);
         }
@@ -86,26 +81,22 @@ private:
     void traverse(BTreeNode* x) {
         int i;
         for (i = 0; i < x->n; i++) {
-            if (!x->leaf)
-                traverse(x->children[i]);
-            cout << " (" << x->keys[i].first << ", " << x->keys[i].second << ")";
+            if (!x->leaf) traverse(x->children[i]);
+            cout << " (" << x->keys[i].first << ", " << x->keys[i].second
+                 << ")";
         }
 
-        if (!x->leaf)
-            traverse(x->children[i]);
+        if (!x->leaf) traverse(x->children[i]);
     }
 
     // Function to search a key in the tree
     BTreeNode* search(BTreeNode* x, pair<uint8_t, uint8_t> k) {
         int i = 0;
-        while (i < x->n && k > x->keys[i])
-            i++;
+        while (i < x->n && k > x->keys[i]) i++;
 
-        if (i < x->n && k.first == x->keys[i].first)
-            return x;
+        if (i < x->n && k.first == x->keys[i].first) return x;
 
-        if (x->leaf)
-            return nullptr;
+        if (x->leaf) return nullptr;
 
         return search(x->children[i], k);
     }
@@ -113,16 +104,14 @@ private:
     // Function to find the predecessor
     pair<uint8_t, uint8_t> getPredecessor(BTreeNode* node, int idx) {
         BTreeNode* current = node->children[idx];
-        while (!current->leaf)
-            current = current->children[current->n];
+        while (!current->leaf) current = current->children[current->n];
         return current->keys[current->n - 1];
     }
 
     // Function to find the successor
     pair<uint8_t, uint8_t> getSuccessor(BTreeNode* node, int idx) {
         BTreeNode* current = node->children[idx + 1];
-        while (!current->leaf)
-            current = current->children[0];
+        while (!current->leaf) current = current->children[0];
         return current->keys[0];
     }
 
@@ -155,8 +144,7 @@ private:
 
         child->keys[0] = node->keys[idx - 1];
 
-        if (!child->leaf)
-            child->children[0] = sibling->children[sibling->n];
+        if (!child->leaf) child->children[0] = sibling->children[sibling->n];
 
         node->keys[idx - 1] = sibling->keys[sibling->n - 1];
 
@@ -171,8 +159,7 @@ private:
 
         child->keys[child->n] = node->keys[idx];
 
-        if (!child->leaf)
-            child->children[child->n + 1] = sibling->children[0];
+        if (!child->leaf) child->children[child->n + 1] = sibling->children[0];
 
         node->keys[idx] = sibling->keys[0];
 
@@ -244,8 +231,7 @@ private:
     // Function to remove a key from the tree
     void remove(BTreeNode* node, pair<uint8_t, uint8_t> k) {
         int idx = 0;
-        while (idx < node->n && node->keys[idx] < k)
-            ++idx;
+        while (idx < node->n && node->keys[idx] < k) ++idx;
 
         if (idx < node->n && node->keys[idx] == k) {
             if (node->leaf)
@@ -254,14 +240,14 @@ private:
                 removeFromNonLeaf(node, idx);
         } else {
             if (node->leaf) {
-                cout << "The key (" << k.first << ", " << k.second << ") is not present in the tree\n";
+                cout << "The key (" << k.first << ", " << k.second
+                     << ") is not present in the tree\n";
                 return;
             }
 
             bool flag = ((idx == node->n) ? true : false);
 
-            if (node->children[idx]->n < ORDER / 2)
-                fill(node, idx);
+            if (node->children[idx]->n < ORDER / 2) fill(node, idx);
 
             if (flag && idx > node->n)
                 remove(node->children[idx - 1], k);
@@ -270,7 +256,7 @@ private:
         }
     }
 
-public:
+   public:
     BTree() { root = new BTreeNode(true); }
 
     // Function to insert a key in the tree
@@ -287,8 +273,7 @@ public:
 
     // Function to traverse the tree
     void traverse() {
-        if (root != nullptr)
-            traverse(root);
+        if (root != nullptr) traverse(root);
     }
 
     // Function to search a key in the tree

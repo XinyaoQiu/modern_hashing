@@ -17,7 +17,6 @@
 template <typename K, typename V>
 class CuckooHash : public HashBase<K, V> {
    public:
-
     /**
      * @brief Constructs the hash table with the given initial capacity.
      * @param initial_capacity Initial number of slots in the table.

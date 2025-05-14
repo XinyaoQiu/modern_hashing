@@ -166,7 +166,6 @@ class DynamicResizeWithLinearProb : public HashBase<K, V> {
      * @brief Doubles the table size and reinserts all active entries.
      */
     void rehash() {
-        size_t old_capacity = capacity_;
         capacity_ *= 2;
         std::vector<Entry> old_table = std::move(table);
 

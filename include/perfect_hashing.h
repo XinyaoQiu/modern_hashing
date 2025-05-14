@@ -1,20 +1,21 @@
 #pragma once
 
-#include "hash_base.h"
-#include <vector>
-#include <optional>
-#include <functional>
 #include <algorithm>
+#include <functional>
+#include <optional>
+#include <vector>
+
+#include "hash_base.h"
 
 /**
  * @brief A secondary hash table used in two-level perfect hashing.
- * 
- * Each SecondaryTable handles collisions within a bucket using 
+ *
+ * Each SecondaryTable handles collisions within a bucket using
  * open addressing and quadratic space to guarantee perfect hashing.
  */
-template<typename K, typename V>
+template <typename K, typename V>
 class SecondaryTable {
-public:
+   public:
     SecondaryTable() = default;
 
     /**
@@ -113,7 +114,7 @@ public:
         return insert_or_modify(key, value);
     }
 
-private:
+   private:
     std::vector<std::optional<std::pair<K, V>>> table;
     size_t size = 0;
     size_t capacity = 0;
@@ -123,9 +124,7 @@ private:
      * @brief Computes the hash value for a given key.
      * @param key Key to hash.
      */
-    size_t hash(K key) const {
-        return hasher(key) % capacity;
-    }
+    size_t hash(K key) const { return hasher(key) % capacity; }
 
     /**
      * @brief Rebuilds the hash table to improve distribution.
@@ -145,9 +144,9 @@ private:
  * @brief A two-level perfect hash table using fixed-size top-level buckets
  *        and dynamically sized perfect secondary tables.
  */
-template<typename K, typename V>
+template <typename K, typename V>
 class PerfectHash : public HashBase<K, V> {
-public:
+   public:
     using KeyType = K;
     using ValueType = V;
 
@@ -211,9 +210,7 @@ public:
     /**
      * @brief Returns the total number of stored elements.
      */
-    size_t size() const override {
-        return size_;
-    }
+    size_t size() const override { return size_; }
 
     /**
      * @brief Clears all buckets.
@@ -235,23 +232,18 @@ public:
     /**
      * @brief Returns the number of top-level buckets.
      */
-    size_t capacity() const override {
-        return bucketCount;
-    }
+    size_t capacity() const override { return bucketCount; }
 
-private:
+   private:
     std::vector<SecondaryTable<K, V>> buckets;
     size_t bucketCount;
     size_t size_ = 0;
     std::hash<K> hasher;
 
-    
     /**
      * @brief Computes the index of the top-level bucket for a given key.
      * @param key Key to hash.
      * @return Index of the bucket.
      */
-    size_t getBucketIndex(K key) const {
-        return hasher(key) % bucketCount;
-    }
+    size_t getBucketIndex(K key) const { return hasher(key) % bucketCount; }
 };
