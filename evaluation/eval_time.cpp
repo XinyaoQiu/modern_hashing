@@ -170,7 +170,7 @@ void run_benchmark(HashTable& table, DataSet& dataset, ofstream& of,
 }
 
 void print_help() {
-    cout << "Usage: ./bin/eval_time [--capacity <int>] [--load <float>] "
+    cout << "Usage: ./bin/eval_time [--numKeys <int>] [--load <float>] "
             "[--hashtable <string>]\n"
          << "Options:\n"
          << "  --numKeys <int>         Number of keys (default: 1e5)\n"
