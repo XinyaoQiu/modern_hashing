@@ -43,7 +43,7 @@ class FunnelHash : public HashBase<K, V> {
         // Greedy tries on levels A1..Aα
         for (size_t lvl = 0; lvl < alpha_; ++lvl) {
             size_t nbuckets = slots_[lvl].size() / beta_;
-            size_t b = hashToBucket(lvl, key) % nbuckets;
+            size_t b = hashToBucket(lvl, std::hash<K>{}(key)) % nbuckets;
             size_t start = b * beta_;
             // scan bucket of size β
             for (size_t j = 0; j < beta_; ++j) {
@@ -70,7 +70,7 @@ class FunnelHash : public HashBase<K, V> {
         // search each level greedily (paper Sec.3)
         for (size_t lvl = 0; lvl < alpha_; ++lvl) {
             size_t nbuckets = slots_[lvl].size() / beta_;
-            size_t b = hashToBucket(lvl, key) % nbuckets;
+            size_t b = hashToBucket(lvl, std::hash<K>{}(key)) % nbuckets;
             size_t start = b * beta_;
             for (size_t j = 0; j < beta_; ++j) {
                 const Entry &e = slots_[lvl][start + j];
@@ -94,7 +94,7 @@ class FunnelHash : public HashBase<K, V> {
             size_t start = 0, sz = slots_[lvl].size();
             if (lvl < alpha_) {
                 size_t nbuckets = sz / beta_;
-                size_t b = hashToBucket(lvl, key) % nbuckets;
+                size_t b = hashToBucket(lvl, std::hash<K>{}(key)) % nbuckets;
                 start = b * beta_;
                 sz = beta_;
             } else {
@@ -216,8 +216,8 @@ class FunnelHash : public HashBase<K, V> {
         size_t bucket_size = limit * 2;
         if (half >= bucket_size * 2) {
             size_t nb2 = half / bucket_size;
-            size_t h1 = hashToBucket(alpha_, key) % nb2;
-            size_t h2 = hashToBucket(alpha_, key ^ 0x9e3779b97f4a7c15ULL) % nb2;
+            size_t h1 = hashToBucket(alpha_, std::hash<K>{}(key)) % nb2;
+            size_t h2 = hashToBucket(alpha_, std::hash<K>{}(key) ^ 0x9e3779b97f4a7c15ULL) % nb2;
             for (size_t j = 0; j < bucket_size; ++j) {
                 size_t i1 = half + h1 * bucket_size + j;
                 size_t i2 = half + h2 * bucket_size + j;
@@ -272,8 +272,8 @@ class FunnelHash : public HashBase<K, V> {
         size_t bucket_size = limit * 2;
         if (half >= bucket_size * 2) {
             size_t nb2 = half / bucket_size;
-            size_t h1 = hashToBucket(alpha_, key) % nb2;
-            size_t h2 = hashToBucket(alpha_, key ^ 0x9e3779b97f4a7c15ULL) % nb2;
+            size_t h1 = hashToBucket(alpha_, std::hash<K>{}(key)) % nb2;
+            size_t h2 = hashToBucket(alpha_, std::hash<K>{}(key) ^ 0x9e3779b97f4a7c15ULL) % nb2;
             for (size_t j = 0; j < bucket_size; ++j) {
                 for (size_t idx : {half + h1 * bucket_size + j,
                                    half + h2 * bucket_size + j}) {
@@ -308,8 +308,7 @@ class FunnelHash : public HashBase<K, V> {
         return size_t(splitmix64(a ^ b));
     }
 
-    size_t hashToBucket(size_t lvl, const K &key) const {
-        uint64_t h = std::hash<K>{}(key);
+    size_t hashToBucket(size_t lvl, uint64_t h) const {
         uint64_t mix = h ^ (uint64_t(lvl) * 0x9e3779b97f4a7c15ULL);
         return size_t(splitmix64(mix));
     }
