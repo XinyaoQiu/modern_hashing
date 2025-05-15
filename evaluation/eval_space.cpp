@@ -142,11 +142,11 @@ int main(int argc, char* argv[]) {
        << ", load_factor=" << load_factor << ", num_keys=" << num_keys
        << " ===\n\n";
 
+    size_t mem_used_kb = 0;
     if (type == "number") {
         vector<pair<uint64_t, uint64_t>> dataset =
             generate_number_dataset(num_keys, key_range);
 
-        size_t mem_used_kb = 0;
         if (hashtable == "unordered_map") {
             unordered_map<uint64_t, uint64_t> table;
             mem_used_kb = baseline_space(table, dataset);
@@ -177,14 +177,42 @@ int main(int argc, char* argv[]) {
             cerr << "Error: unknown hashtable: " << hashtable << endl;
             return 1;
         }
-
-        cout << "[" << hashtable << "] Memory usage: " << mem_used_kb
-             << " KB\n";
-        of << "[" << hashtable << "] Memory usage: " << mem_used_kb << " KB\n";
     } else {
-        cerr << "Error: only number dataset is supported in this space test.\n";
-        return 1;
+        vector<pair<string, string>> dataset =
+            generate_string_dataset(num_keys, key_range);
+
+        if (hashtable == "unordered_map") {
+            unordered_map<string, string> table;
+            mem_used_kb = baseline_space(table, dataset);
+        } else if (hashtable == "dynamic") {
+            DynamicResizeWithLinearProb<string, string> table(table_capacity);
+            mem_used_kb = benchmark_space(table, dataset);
+        } else if (hashtable == "fixed") {
+            FixedListChainedHashTable<string, string> table(table_capacity);
+            mem_used_kb = benchmark_space(table, dataset);
+        } else if (hashtable == "perfect") {
+            PerfectHash<string, string> table(table_capacity);
+            mem_used_kb = benchmark_space(table, dataset);
+        } else if (hashtable == "partition") {
+            IndexedPartitionHashWithBTree<string, string> table(table_capacity);
+            mem_used_kb = benchmark_space(table, dataset);
+        } else if (hashtable == "cuckoo") {
+            CuckooHash<string, string> table(table_capacity);
+            mem_used_kb = benchmark_space(table, dataset);
+        } else if (hashtable == "elastic") {
+            ElasticHash<string, string> table(table_capacity);
+            mem_used_kb = benchmark_space(table, dataset);
+        } else if (hashtable == "funnel") {
+            FunnelHash<string, string> table(table_capacity);
+            mem_used_kb = benchmark_space(table, dataset);
+        } else {
+            cerr << "Error: unknown hashtable: " << hashtable << endl;
+            return 1;
+        }
     }
+
+    cout << "[" << hashtable << "] Memory usage: " << mem_used_kb << " KB\n";
+    of << "[" << hashtable << "] Memory usage: " << mem_used_kb << " KB\n";
 
     return 0;
 }
